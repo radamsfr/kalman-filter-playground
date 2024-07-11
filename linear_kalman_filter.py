@@ -39,8 +39,8 @@ class KalmanFilter():
         
         self.x = self.x + self.K @ self.y
         
-        I = np.ones_like(self.K @ self.H)
-        # I = np.eye(self.P.shape[0])  # Identity matrix
+
+        I = np.eye(self.P.shape[0])  # Identity matrix
         self.P = (I - self.K @ self.H) @ self.P
         
         
