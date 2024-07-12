@@ -1,9 +1,5 @@
 import numpy as np
-
-# from filterpy.common import Q_discrete_white_noise
-
-from collections import namedtuple
-gaussian = namedtuple('Gaussian', ['mean', 'var'])
+from casadi import SX, MX, jacobian, sqrt, sin, cos, vertcat
 
 class KalmanFilter():
     def __init__(self, state_vars, output_vars, x, P, F, Q, u, B, z, R, H):
@@ -60,32 +56,41 @@ class KalmanFilter():
 
 
 # TESTING
+xs = MX.sym('x')
+ys = MX.sym('y')
+thetas = MX.sym('theta')
+betas = MX.sym('beta')
+rs = MX.sym('r')
 
-x = np.array([[10.0],
-              [4.5]])
+# STATE MEAN VECTOR
+x = vertcat(xs, ys, thetas)
+# print(x)
 
 P = np.array([[500., 0.],
               [0., 49.]])
 
 dt = 0.1
-F = np.array([[1, dt],
-              [0, 1]])
+
+fxu = vertcat(xs-rs*sin(thetas) + rs*sin(thetas+betas),
+              ys+rs*cos(thetas)- rs*cos(thetas+betas),
+              thetas+betas)
+# print(fxu)
 
 Q = np.array([[0.588, 1.175],
               [1.175, 2.35 ]])
 
 u=np.array([[0]])
 B = np.array([0.])
-
-H = np.array([[1., 0.]])
+H = np.array([0])
 R = np.array([[5.]])
 
 
 
+"""
 # MEASUREMENT
 z = np.array([[20]])  
 
-kf = KalmanFilter(state_vars=2, output_vars=1, x=x, P=P, F=F, Q=Q, u=u, B=B, z=z, R=R, H=H)
+kf = KalmanFilter(state_vars=3, output_vars=1, x=x, P=P, F=F, Q=Q, u=u, B=B, z=z, R=R, H=H)
 
 
 # Predict step
@@ -101,3 +106,6 @@ print('x =', x)
 
 # Print all variables
 # kf.all_variables()
+
+
+"""
