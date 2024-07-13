@@ -51,6 +51,10 @@ alphas = MX.sym('alpha')
 betas = MX.sym('beta')
 rs = MX.sym('r')
 
+pxs = MX.sym('p_x')
+pys = MX.sym('p_y')
+
+'''
 # STATE MEAN VECTOR
 x = ca.vcat([xs, ys, thetas])
 
@@ -66,7 +70,16 @@ F = jacobian(fxu,x)
 
 print("F:\n",F)
 
+Ft = F.T
 
+print("Ft:\n", Ft)
+
+'''
+
+z = ca.vcat([sqrt((pxs-xs)**2 + (pys-ys)**2),
+            ca.arctan2(pys-ys, pxs-xs) - thetas])
+
+print("z:\n", z)
 
 ##### WRITE FUNCTIONS TO CONVERT casADi TO SymPy TO MAKE EQUATIONS READABLE
 """ 
