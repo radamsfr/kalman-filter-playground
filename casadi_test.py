@@ -33,7 +33,6 @@ Ft = F.T
 print("Ft:\n", Ft)
 
 """
- 
 
  
 ###USING THE Function FUNCTION IN casADi
@@ -49,12 +48,12 @@ betas = SX.sym('beta')
 x = SX([3, 2])
 x_sym = vcat([xs, ys])
 
-u = SX([2, 5])
-u_sym = vcat([alphas, betas])
+u = SX([])
+u_sym = vcat([])
 
 
 
-f = vcat([xs*alphas, xs+betas, xs*ys])
+f = vcat([xs, xs*2, xs*ys])
 
 
 fxu = Function('f', [x_sym, u_sym], [f])
