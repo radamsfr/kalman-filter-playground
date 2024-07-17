@@ -58,7 +58,7 @@ x0 = SX([radar.pos-100, radar.vel+100, radar.alt+1000])
 x_sym = vcat([x,v,y])
 
 u = SX([])
-u_sym = SX([])
+u_sym = vcat([])
 
 f = vcat([x+v*dt, v, y])
 
@@ -85,8 +85,16 @@ for i in range(int(20/dt)):
     track.append((radar.pos, radar.vel, radar.alt))
     # print("track most recent:\n", track[-1])
     
+    # print("before")
+    # print(kf.x)
+    
     kf.update(z)
+    
+    # print("after")
+    # print(kf.x)
+    
     xs.append(x)
+    
     kf.predict()
     
     # print("predict:\n", rk.x)
