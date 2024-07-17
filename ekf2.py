@@ -42,7 +42,7 @@ class ExtendedKalmanFilter():
 
         
     def update(self, z):
-        self.z = z  # MEASUREMENT MEAN (MUST BE MATRIX (MX))
+        self.z = z  # MEASUREMENT MEAN (MUST BE MATRIX (SX))
 
         self.y = self.z - self.hx(self.x)  # PLUG IN VALUES OF STATE MEAN x INTO FUNCTION hx    
         
