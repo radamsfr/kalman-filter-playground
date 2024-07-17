@@ -1,0 +1,97 @@
+# from numpy import array
+from casadi import SX, MX, jacobian, sqrt, sin, cos, arctan2, vcat, hcat, Function, inv, SX_eye
+from numpy.random import randn
+from math import sqrt
+from filterpy.common import Q_discrete_white_noise
+# from filterpy.kalman import ExtendedKalmanFilter
+from numpy import eye, array, asarray
+import numpy as np
+
+
+import ekf2
+
+
+class RadarSim:
+    """ 
+    Simulates the radar signal returns from an object
+    flying at a constant altityude and velocity in 1D. 
+    """
+    
+    def __init__(self, dt, pos, vel, alt):
+        self.pos = pos
+        self.vel = vel
+        self.alt = alt
+        self.dt = dt
+        
+    def get_range(self):
+        """ 
+        Returns slant range to the object. Call once 
+        for each new measurement at dt time from last call.
+        """
+        
+        # add some process noise to the system
+        self.vel = self.vel  + .1*randn()
+        self.alt = self.alt + .1*randn()
+        self.pos = self.pos + self.vel*self.dt
+    
+        # add measurement noise
+        err = self.pos * 0.05*randn()
+        slant_dist = sqrt(self.pos**2 + self.alt**2)
+        
+        return slant_dist + err
+    
+    
+    
+    
+    
+x = MX.sym('x')
+y = MX.sym('y')
+v = MX.sym('v')
+    
+    
+    
+    
+dt = 0.05
+radar = RadarSim(dt, pos=0., vel=100., alt=1000.)
+
+x0 = SX([radar.pos-100, radar.vel+100, radar.alt+1000])
+x_sym = vcat([x,v,y])
+
+u = SX([])
+u_sym = SX([])
+
+f = vcat([x+v*dt, v, y])
+
+h = vcat([x+v*dt, v, y])
+
+range_std = 5. # meters
+R = np.diag([range_std**2])
+M = SX(3,3)
+M[0:2, 0:2] = Q_discrete_white_noise(2, dt=dt, var=0.1)
+M[2,2] = 0.1
+P = SX(3,3)
+P *= 50
+
+
+kf = ekf2.ExtendedKalmanFilter(state_vars=3, output_vars=1, control_vars=0, x0=x0, x_sym=x_sym, u=u, u_sym=u_sym, P=P, f=f, M=M, h=h, R=R)
+
+
+xs, track = [], []
+for i in range(int(20/dt)):
+    # print("i:", i)
+    z = radar.get_range()
+    print("z:", z)
+    
+    track.append((radar.pos, radar.vel, radar.alt))
+    # print("track most recent:\n", track[-1])
+    
+    kf.update(z)
+    xs.append(x)
+    kf.predict()
+    
+    # print("predict:\n", rk.x)
+    
+
+xs = asarray(xs)
+track = asarray(track)
+time = np.arange(0, len(xs)*dt, dt)
