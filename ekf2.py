@@ -8,6 +8,12 @@ class ExtendedKalmanFilter():
         self.output_vars = output_vars
         self.control_vars = control_vars
         
+        
+        """ 
+        MATRICES THAT USE SYMBOLIC VARIABLES MUST USE vcat() MATRIX,
+        OTHERWISE USE SX MATRIX. (DO NOT USE MX)                       
+        """
+        
         self.x = x0  # STATE MEAN 
         self.x_sym = x_sym  # STATE MEAN (SYMBOLIC VARAIABLES)
         self.P = P  # STATE COVARIANCE
@@ -24,10 +30,12 @@ class ExtendedKalmanFilter():
         self.h = h # MEASUREMENT TRANSITION FUNCTION (SYMBOLIC VARIABLES)
         
         
+        # FUNCTIONS FROM PROCESS AND MEASUREMENT MATRICES
         self.fxu = Function('fxu', [self.x_sym, self.u_sym], [self.f])  
         
         self.hx = Function('hx', [self.x_sym], [self.h])
         
+        # JACOBIANS AND CORRESPONDING FUNCTIONS
         self.F = jacobian(self.f, self.x_sym)
         self.Fxu = Function('Fxu', [self.x_sym, self.u_sym], [self.F])  
         
@@ -63,7 +71,7 @@ class ExtendedKalmanFilter():
 
 
     def predict(self):
-        self.x = self.fxu(self.x)
+        self.x = self.fxu(self.x, self.u)
 
         self.F = self.Fxu(self.x, self.u)
         Ft = self.F.T
