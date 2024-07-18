@@ -1,14 +1,13 @@
-# from numpy import array
-from casadi import SX, MX, jacobian, sqrt, sin, cos, arctan2, vcat, hcat, Function, inv, SX_eye
+from casadi import SX, sqrt, vcat, SX_eye
 from numpy.random import randn
 from math import sqrt
 from filterpy.common import Q_discrete_white_noise
-# from filterpy.kalman import ExtendedKalmanFilter
-from numpy import eye, array, asarray
 import numpy as np
-
+import time
+import matplotlib.pyplot as plt
 
 import ekf2
+import plotting
 
 
 class RadarSim:
@@ -39,15 +38,23 @@ class RadarSim:
         slant_dist = sqrt(self.pos**2 + self.alt**2)
         
         return slant_dist + err
+
+
+def transition_model(x, u):
+    f = vcat([x[0]+x[1]*dt, x[1], x[2]])
+    return f
+
+
+def measurement_model(x):
+    h = (x[0]**2 + x[2]**2) ** 0.5
+    return h
     
-    
-    
-    
-    
-x = MX.sym('x')
-y = MX.sym('y')
-v = MX.sym('v')
-    
+x = SX.sym('x')
+y = SX.sym('y')
+v = SX.sym('v')
+alpha = SX.sym('alpha')
+beta = SX.sym('beta')
+sigma = SX.sym('sigma')
     
     
     
@@ -57,49 +64,68 @@ radar = RadarSim(dt, pos=0., vel=100., alt=1000.)
 x0 = SX([radar.pos-100, radar.vel+100, radar.alt+1000])
 x_sym = vcat([x,v,y])
 
-u = SX([])
-u_sym = vcat([])
+u = SX([0,0,0])
+u_sym = vcat([alpha, beta, sigma])
 
-f = vcat([x+v*dt, v, y])
-
-h = vcat([x+v*dt, v, y])
+f = transition_model(x_sym, u_sym)
+h = measurement_model(x_sym)
 
 range_std = 5. # meters
 R = np.diag([range_std**2])
 M = SX(3,3)
 M[0:2, 0:2] = Q_discrete_white_noise(2, dt=dt, var=0.1)
 M[2,2] = 0.1
-P = SX(3,3)
+P = SX_eye(3)
 P *= 50
 
 
 kf = ekf2.ExtendedKalmanFilter(state_vars=3, output_vars=1, control_vars=0, x0=x0, x_sym=x_sym, u=u, u_sym=u_sym, P=P, f=f, M=M, h=h, R=R)
 
 
+t_time = []
 xs, track = [], []
+# print the initial x prediction
+# print("predict:\n", kf.x)
 for i in range(int(20/dt)):
     # print("i:", i)
+    
     z = radar.get_range()
-    print("z:", z)
+    # print("z:", z)
     
     track.append((radar.pos, radar.vel, radar.alt))
     # print("track most recent:\n", track[-1])
-    
-    # print("before")
-    # print(kf.x)
+
+    t1 = time.time()
     
     kf.update(z)
-    
-    # print("after")
-    # print(kf.x)
-    
-    xs.append(x)
-    
+    xs.append(kf.x)
     kf.predict()
     
-    # print("predict:\n", rk.x)
+    t2 = time.time()
+    t_time.append(t2-t1)
     
+    # print("predict:\n", kf.x)
+    
+    
+print("total run time:\n",sum(t_time))
 
-xs = asarray(xs)
-track = asarray(track)
+
+xs_array = []
+for state in xs:
+    int(state[0])
+    i = [int(state[0]), int(state[1]), int(state[2])]
+    xs_array.append(i)
+
+xs_array = np.asarray(xs_array)
+track = np.asarray(track)
+
+
 time = np.arange(0, len(xs)*dt, dt)
+
+plotting.plot_radar(xs_array, track, time)
+
+
+
+# print('xs:\n',xs)
+# print('track:\n',track)
+
