@@ -1,14 +1,12 @@
 from casadi import SX, sqrt, vcat, SX_eye
-from numpy.random import randn
-from math import sqrt
-from filterpy.common import Q_discrete_white_noise
 import numpy as np
+from filterpy.common import Q_discrete_white_noise
 import time
 import matplotlib.pyplot as plt
+from numpy.random import randn
 
 import ekf2
 import plotting
-
 
 class RadarSim:
     """ 
@@ -40,48 +38,66 @@ class RadarSim:
         return slant_dist + err
 
 
-def transition_model(x, u):
-    f = vcat([x[0]+x[1]*dt, x[1], x[2]])
-    return f
+dt = 0.05
+radar = RadarSim(dt, pos=0., vel=100., alt=1000.)
 
-
-def measurement_model(x):
-    h = (x[0]**2 + x[2]**2) ** 0.5
-    return h
-    
+### SET VARIABLES (USING casADi SX)
 x = SX.sym('x')
 y = SX.sym('y')
 v = SX.sym('v')
 alpha = SX.sym('alpha')
 beta = SX.sym('beta')
 sigma = SX.sym('sigma')
-    
-    
-    
-dt = 0.05
-radar = RadarSim(dt, pos=0., vel=100., alt=1000.)
 
+
+### SET STATE MEANS AND STATE MEAN VARIABLES
 x0 = SX([radar.pos-100, radar.vel+100, radar.alt+1000])
 x_sym = vcat([x,v,y])
 
+
+### SET CONTROL INPUTS AND CONTROL INPUT VARIABLES
 u = SX([0,0,0])
 u_sym = vcat([alpha, beta, sigma])
 
+
+
+
+### DEFINE TRANSITION FUNCTION
+def transition_model(x, u):
+    f = vcat([x[0]+x[1]*dt, x[1], x[2]])
+    return f
+
 f = transition_model(x_sym, u_sym)
+
+
+### DEFINE MEASUREMENT FUNCTION
+def measurement_model(x):
+    h = (x[0]**2 + x[2]**2) ** 0.5
+    return h
+
 h = measurement_model(x_sym)
 
-range_std = 5. # meters
-R = np.diag([range_std**2])
-M = SX(3,3)
-M[0:2, 0:2] = Q_discrete_white_noise(2, dt=dt, var=0.1)
-M[2,2] = 0.1
+
+
+### STATE COVARIANCE
 P = SX_eye(3)
 P *= 50
 
+### PROCESS COVARIANCE
+M = SX(3,3)
+M[0:2, 0:2] = Q_discrete_white_noise(2, dt=dt, var=0.1)
+M[2,2] = 0.1
 
+### MEASUREMENT COVARIANCE (NOISE)
+range_std = 5. # meters
+R = np.diag([range_std**2])
+
+
+### PLUG INTO EKF
 kf = ekf2.ExtendedKalmanFilter(state_vars=3, output_vars=1, control_vars=0, x0=x0, x_sym=x_sym, u=u, u_sym=u_sym, P=P, f=f, M=M, h=h, R=R)
 
 
+### LOOP THROUGH ekf.update(z) and ekf.predict, appending ekf.x to an array
 t_time = []
 xs, track = [], []
 # print the initial x prediction
@@ -123,9 +139,3 @@ track = np.asarray(track)
 time = np.arange(0, len(xs)*dt, dt)
 
 plotting.plot_radar(xs_array, track, time)
-
-
-
-# print('xs:\n',xs)
-# print('track:\n',track)
-
