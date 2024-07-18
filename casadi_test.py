@@ -2,6 +2,7 @@ import numpy as np
 import casadi as ca
 from casadi import SX, MX, jacobian, sqrt, sin, cos, vcat, hcat, substitute, Function
 import sympy as sp
+import time
 
 
 # SYM VARIABLES
